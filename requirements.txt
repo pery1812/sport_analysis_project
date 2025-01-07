@@ -1,11 +1,11 @@
 protobuf==3.11.3
 tensorboard==2.3.0
-numpy
+numpy==1.23.5
 opencv-python==4.6.0.66
 opencv-contrib-python==4.6.0.66
 pyyaml==6.0
 PyQt5-sip
-PyQt5==5.15.9
+PyQt5
 PyQtWebEngine
 qt-thread-updater==1.1.6
 Pillow==9.5.0
@@ -15,3 +15,10 @@ psutil==5.9.8
 rich
 imutils
 tqdm
+pandas
+torch
+torchvision
+matplotlib
+seaborn
+scipy
+requests
