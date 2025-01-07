@@ -9,7 +9,7 @@ from PyQt5 import QtGui
 from PyQt5.QtWidgets import QLabel, QSizePolicy
 from qt_thread_updater import get_updater
 from src import config as co
-
+from src.keypoint_det import yolo_keypoint
 
 def text_size(frame):
     frame_height, frame_width = frame.shape[:2]
@@ -37,13 +37,9 @@ class Main:
     def __init__(self, MainGUI):
         self.MainGUI = MainGUI
         self.camera = None
-        self.image = None
         self.ret = False
         self.start_camera = True
-        # self.model = 
-        self.dim = (224, 224)
-        self.frames_len = 10
-        self.channels = 3
+        self.keypoint_det = yolo_keypoint("./weights/yolo11s-pose.pt")
         self.init_text_size()
 
     def img_cv_2_qt(self, img_cv):
@@ -53,34 +49,52 @@ class Main:
         return QtGui.QPixmap.fromImage(img_qt)
     
     def init_devices(self, url_camera):
-        # Create empty buffer
-        self.frame_buffer = np.empty((0, *self.dim, self.channels))
-        self.camera = cv2.VideoCapture(url_camera)
-        self.camera.set(cv2.CAP_PROP_FPS, 25)  # set the FPS to 25 
-        self.ret, frame = self.camera.read()
+        self.camera = cv2.VideoCapture(url_camera) 
+        self.ret, frame = self.camera.read() 
         if not self.ret:
             self.start_camera = False
             self.MainGUI.MessageBox_signal.emit("Có lỗi xảy ra ! \n Không tìm thấy camera/video", "error")
         else:
             self.start_camera = True
             (self.text_x, self.text_y), self.font, self.font_scale, self.text_color, self.font_thickness = text_size(frame)
-
-      
-    def capture_image(self):
-        if self.image is not None and self.ret and self.start_camera:
-            image = self.image.copy()
-            # Call SLVR model
-            self.close_camera()
-            get_updater().call_latest(self.MainGUI.label_Image.setPixmap, self.img_cv_2_qt(image))
-        else:
-            self.MainGUI.MessageBox_signal.emit("Không tìm thấy Camera/Video !", "error")
     
+    def auto_camera(self):
+        url_camera = co.CAMERA_DEVICE
+        self.init_devices(url_camera)
+        while self.ret and self.start_camera:
+            try:
+                ret, frame = self.camera.read()
+                self.ret = ret
+                if self.ret and self.start_camera:
+                    img_result, _, has_person = self.keypoint_det.draw_results(frame)
+                    get_updater().call_latest(self.MainGUI.label_Image.setPixmap, self.img_cv_2_qt(img_result))
+                    if has_person:
+                        image_view = img_result.copy()
+                        # get_updater().call_latest(self.MainGUI.label_View.setPixmap, self.img_cv_2_qt(image_view))
+                        get_updater().call_latest(self.MainGUI.text_result.setText, "Human Pose")
+                        get_updater().call_latest(self.MainGUI.text_result.setStyleSheet,"background-color: rgb(0, 255, 0);")
+                    else:
+                        get_updater().call_latest(self.MainGUI.text_result.setText, "None")
+                        get_updater().call_latest(self.MainGUI.text_result.setStyleSheet,"background-color: rgb(0, 0, 255);")
+                else:
+                    break
+            except Exception as e:
+                print("Bug: ", e)
+        self.close_camera()
+
     def manual_image(self, image_file):
         image = cv2.imread(image_file)
-        # Call SLVR model
-
-        get_updater().call_latest(self.MainGUI.label_Image.setPixmap, self.img_cv_2_qt(image))
-
+        # Call keypoin model
+        img_result, _, has_person = self.keypoint_det.draw_results(image)
+        get_updater().call_latest(self.MainGUI.label_Image.setPixmap, self.img_cv_2_qt(img_result))
+        if has_person:
+            image_view = img_result.copy()
+            # get_updater().call_latest(self.MainGUI.label_View.setPixmap, self.img_cv_2_qt(image_view))
+            get_updater().call_latest(self.MainGUI.text_result.setText, "Human Pose")
+            get_updater().call_latest(self.MainGUI.text_result.setStyleSheet,"background-color: rgb(0, 255, 0);")
+        else:
+            get_updater().call_latest(self.MainGUI.text_result.setText, "None")
+            get_updater().call_latest(self.MainGUI.text_result.setStyleSheet,"background-color: rgb(0, 0, 255);")
 
     def close_camera(self):
         try:
