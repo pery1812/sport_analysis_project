@@ -9,7 +9,9 @@ from PyQt5 import QtGui
 from PyQt5.QtWidgets import QLabel, QSizePolicy
 from qt_thread_updater import get_updater
 from src import config as co
-
+from src.keypoint_det import yolo_keypoint
+from src.basketball import yolo_basketball
+from src.utils import draw_bbox, draw_keypoints, draw_keypoints_and_skeleton, visualize_basketball
 
 def text_size(frame):
     frame_height, frame_width = frame.shape[:2]
@@ -37,13 +39,10 @@ class Main:
     def __init__(self, MainGUI):
         self.MainGUI = MainGUI
         self.camera = None
-        self.image = None
         self.ret = False
         self.start_camera = True
-        # self.model = 
-        self.dim = (224, 224)
-        self.frames_len = 10
-        self.channels = 3
+        self.keypoint_det = yolo_keypoint("./weights/poses_best.pt", device='cpu')
+        self.basketball_det = yolo_basketball("./weights/dets_best.pt", device='cpu')
         self.init_text_size()
 
     def img_cv_2_qt(self, img_cv):
@@ -53,34 +52,169 @@ class Main:
         return QtGui.QPixmap.fromImage(img_qt)
     
     def init_devices(self, url_camera):
-        # Create empty buffer
-        self.frame_buffer = np.empty((0, *self.dim, self.channels))
-        self.camera = cv2.VideoCapture(url_camera)
-        self.camera.set(cv2.CAP_PROP_FPS, 25)  # set the FPS to 25 
-        self.ret, frame = self.camera.read()
+        self.camera = cv2.VideoCapture(url_camera) 
+        self.ret, frame = self.camera.read() 
         if not self.ret:
             self.start_camera = False
             self.MainGUI.MessageBox_signal.emit("Có lỗi xảy ra ! \n Không tìm thấy camera/video", "error")
         else:
             self.start_camera = True
             (self.text_x, self.text_y), self.font, self.font_scale, self.text_color, self.font_thickness = text_size(frame)
-
-      
-    def capture_image(self):
-        if self.image is not None and self.ret and self.start_camera:
-            image = self.image.copy()
-            # Call SLVR model
-            self.close_camera()
-            get_updater().call_latest(self.MainGUI.label_Image.setPixmap, self.img_cv_2_qt(image))
-        else:
-            self.MainGUI.MessageBox_signal.emit("Không tìm thấy Camera/Video !", "error")
     
+    def auto_camera(self):
+        url_camera = co.CAMERA_DEVICE
+        self.init_devices(url_camera)
+        while self.ret and self.start_camera:
+            try:
+                ret, frame = self.camera.read()
+                self.ret = ret
+                if self.ret and self.start_camera:
+                    keypoints_results = self.keypoint_det.predict(frame.copy())
+                    has_person = True if len(keypoints_results) > 0 else False
+                    basketball_results, hoop_results = self.basketball_det.predict(frame.copy())
+                    has_basketball = True if len(basketball_results) > 0 else False
+                    has_hoop = True if len(hoop_results) > 0 else False
+                    image = frame.copy()
+                    basketball_boxes = []
+                    hoop_boxes = []
+                    if has_person:
+                        for kp in keypoints_results:
+                            bbox = kp["bounding_box"]
+                            score = kp["score"]
+                            keypoints = kp["keypoints"]
+                            image = draw_bbox(image, bbox, score)
+                            image = draw_keypoints_and_skeleton(image, keypoints)
+
+                    if has_basketball:
+                        for ball in basketball_results:
+                            bbox = ball["bounding_box"]
+                            score = ball["score"]
+                            image = draw_bbox(image, bbox, score)
+                            basketball_boxes.append(bbox)
+
+                    if has_hoop:
+                        for hoop in hoop_results:
+                            bbox = hoop["bounding_box"]
+                            score = hoop["score"]
+                            image = draw_bbox(image, bbox, score)
+                            hoop_boxes.append(bbox)
+
+                    get_updater().call_latest(self.MainGUI.label_Image.setPixmap, self.img_cv_2_qt(image))
+                    if (has_basketball or has_hoop):
+                        # Get basketball and hoop boxes:
+                        # Visualize output
+                        image_view = visualize_basketball(frame.copy(), basketball_boxes, hoop_boxes)
+                        get_updater().call_latest(self.MainGUI.label_View.setPixmap, self.img_cv_2_qt(image_view))
+                        get_updater().call_latest(self.MainGUI.text_result.setText, "Pose")
+                        get_updater().call_latest(self.MainGUI.text_result.setStyleSheet,"background-color: rgb(0, 255, 0);")
+                    else:
+                        get_updater().call_latest(self.MainGUI.text_result.setText, "None")
+                        get_updater().call_latest(self.MainGUI.text_result.setStyleSheet,"background-color: rgb(0, 0, 255);")
+                else:
+                    break
+            except Exception as e:
+                print("Bug: ", e)
+        self.close_camera()
+
+    def auto_video(self, path_video):
+        url_camera = path_video
+        self.init_devices(url_camera)
+        while self.ret and self.start_camera:
+            try:
+                ret, frame = self.camera.read()
+                self.ret = ret
+                if self.ret and self.start_camera:
+                    keypoints_results = self.keypoint_det.predict(frame.copy())
+                    has_person = True if len(keypoints_results) > 0 else False
+                    basketball_results, hoop_results = self.basketball_det.predict(frame.copy())
+                    has_basketball = True if len(basketball_results) > 0 else False
+                    has_hoop = True if len(hoop_results) > 0 else False
+                    image = frame.copy()
+                    basketball_boxes = []
+                    hoop_boxes = []
+                    if has_person:
+                        for kp in keypoints_results:
+                            bbox = kp["bounding_box"]
+                            score = kp["score"]
+                            keypoints = kp["keypoints"]
+                            image = draw_bbox(image, bbox, score)
+                            image = draw_keypoints_and_skeleton(image, keypoints)
+
+                    if has_basketball:
+                        for ball in basketball_results:
+                            bbox = ball["bounding_box"]
+                            score = ball["score"]
+                            image = draw_bbox(image, bbox, score)
+                            basketball_boxes.append(bbox)
+
+                    if has_hoop:
+                        for hoop in hoop_results:
+                            bbox = hoop["bounding_box"]
+                            score = hoop["score"]
+                            image = draw_bbox(image, bbox, score)
+                            hoop_boxes.append(bbox)
+
+                    get_updater().call_latest(self.MainGUI.label_Image.setPixmap, self.img_cv_2_qt(image))
+                    if (has_basketball or has_hoop):
+                        # Get basketball and hoop boxes:
+                        # Visualize output
+                        image_view = visualize_basketball(frame.copy(), basketball_boxes, hoop_boxes)
+                        get_updater().call_latest(self.MainGUI.label_View.setPixmap, self.img_cv_2_qt(image_view))
+                        get_updater().call_latest(self.MainGUI.text_result.setText, "Pose")
+                        get_updater().call_latest(self.MainGUI.text_result.setStyleSheet,"background-color: rgb(0, 255, 0);")
+                    else:
+                        get_updater().call_latest(self.MainGUI.text_result.setText, "None")
+                        get_updater().call_latest(self.MainGUI.text_result.setStyleSheet,"background-color: rgb(0, 0, 255);")
+                else:
+                    break
+            except Exception as e:
+                print("Bug: ", e)
+        self.close_camera()
+
     def manual_image(self, image_file):
-        image = cv2.imread(image_file)
-        # Call SLVR model
+        frame = cv2.imread(image_file)
+        # Call keypoin model
+        keypoints_results = self.keypoint_det.predict(frame.copy())
+        has_person = True if len(keypoints_results) > 0 else False
+        basketball_results, hoop_results = self.basketball_det.predict(frame.copy())
+        has_basketball = True if len(basketball_results) > 0 else False
+        has_hoop = True if len(hoop_results) > 0 else False
+        image = frame.copy()
+        basketball_boxes = []
+        hoop_boxes = []
+        if has_person:
+            for kp in keypoints_results:
+                bbox = kp["bounding_box"]
+                score = kp["score"]
+                keypoints = kp["keypoints"]
+                image = draw_bbox(image, bbox, score)
+                image = draw_keypoints_and_skeleton(image, keypoints)
+
+        if has_basketball:
+            for ball in basketball_results:
+                bbox = ball["bounding_box"]
+                score = ball["score"]
+                image = draw_bbox(image, bbox, score)
+                basketball_boxes.append(bbox)
+
+        if has_hoop:
+            for hoop in hoop_results:
+                bbox = hoop["bounding_box"]
+                score = hoop["score"]
+                image = draw_bbox(image, bbox, score)
+                hoop_boxes.append(bbox)
 
         get_updater().call_latest(self.MainGUI.label_Image.setPixmap, self.img_cv_2_qt(image))
-
+        if (has_basketball or has_hoop):
+            # Get basketball and hoop boxes:
+            # Visualize output
+            image_view = visualize_basketball(frame.copy(), basketball_boxes, hoop_boxes)
+            get_updater().call_latest(self.MainGUI.label_View.setPixmap, self.img_cv_2_qt(image_view))
+            get_updater().call_latest(self.MainGUI.text_result.setText, "Pose")
+            get_updater().call_latest(self.MainGUI.text_result.setStyleSheet,"background-color: rgb(0, 255, 0);")
+        else:
+            get_updater().call_latest(self.MainGUI.text_result.setText, "None")
+            get_updater().call_latest(self.MainGUI.text_result.setStyleSheet,"background-color: rgb(0, 0, 255);")
 
     def close_camera(self):
         try:
