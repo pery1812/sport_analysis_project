@@ -8,7 +8,7 @@ PyQt5-sip
 PyQt5
 PyQtWebEngine
 qt-thread-updater==1.1.6
-Pillow==9.5.0
+Pillow==10.3.0
 shapely==2.0.1
 pyinstaller
 psutil==5.9.8
