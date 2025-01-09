@@ -5,7 +5,8 @@ from ultralytics import YOLO
 import ipdb
 
 class yolo_basketball(object):
-    def __init__(self, model_path, device='cpu'):
+    CLASS_NAMES = ["basketball", "person", "board"]
+    def __init__(self, model_path, threshold=0.5, device='cpu'):
         """
         Initialize the YOLO Keypoint Detection model.
         
@@ -15,6 +16,7 @@ class yolo_basketball(object):
         """
         self.device = device
         self.model = self.load_model(model_path)
+        self.thres = threshold
 
     def load_model(self, model_path):
         """
@@ -75,14 +77,15 @@ class yolo_basketball(object):
             class_ids = result.boxes.cls.cpu().numpy()  # Class IDs
 
             for box, score, class_id in zip(boxes, scores, class_ids):
-                parsed_box = {
-                    "bounding_box": box,  # [x1, y1, x2, y2]
-                    "score": score,
-                    }
-                if class_id == 0:
-                    ball_results.append(parsed_box)
-                elif class_id == 1:
-                    hoop_results.append(parsed_box)
+                if score >= self.thres:
+                    parsed_box = {
+                        "bounding_box": box,  # [x1, y1, x2, y2]
+                        "score": score,
+                        }
+                    if class_id == 0:
+                        ball_results.append(parsed_box)
+                    elif class_id == 2:
+                        hoop_results.append(parsed_box)
         return ball_results, hoop_results
 
     def draw_bbox(self, image, bbox, score):
@@ -131,7 +134,7 @@ if __name__ == "__main__":
     model_path = "./weights/dets_best.pt"
     yolo_det = yolo_basketball(model_path, device='cpu')
 
-    input_image = "./data_test/img02.jpg"
+    input_image = "./data_test/images/img02.jpg"
     save_dir = "./outputs"
     os.makedirs(save_dir, exist_ok=True)
     output_image = os.path.join(save_dir, os.path.basename(input_image)[:-4] + ".jpg")
