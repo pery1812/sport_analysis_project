@@ -10,5 +10,5 @@ datasets/test/
 weights/*.pt
 
 # Ignore specific folders in data_test
-data_test/images/
-data_test/videos/
+data_test/images/*
+data_test/videos/*
