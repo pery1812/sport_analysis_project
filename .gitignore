@@ -1,0 +1,10 @@
+# Ignore the "runs" folder
+runs/
+
+# Ignore specific folders in "datasets"
+datasets/train/
+datasets/valid/
+datasets/test/
+
+# Ignore all .pt files in the "weights" folder
+weights/*.pt
