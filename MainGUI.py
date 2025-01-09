@@ -23,7 +23,7 @@ class MainGUI(QtWidgets.QMainWindow):
         self.ui = uic.loadUi(co.MAIN_GUI, self)
         self.pushButton_Camera.clicked.connect(self.open_camera)
         self.pushButton_Video.clicked.connect(self.open_video)
-        self.pushButton_Capture.clicked.connect(self.manual)
+        self.pushButton_Image.clicked.connect(self.manual)
         self.pushButton_Stop.clicked.connect(self.stop)
         self.MessageBox_signal.connect(self.MessageBox_slot)
         
@@ -84,7 +84,7 @@ class MainGUI(QtWidgets.QMainWindow):
         if typ == "start":
             if name == "manual":
                 self.pushButton_Video.setStyleSheet("background-color: rgb(0, 204, 255);")
-                for item in ( self.pushButton_Camera, self.pushButton_Video, self.pushButton_Capture):
+                for item in ( self.pushButton_Camera, self.pushButton_Video, self.pushButton_Image):
                     item.setEnabled(False)
                 self.pushButton_Stop.setEnabled(True)
             else:
@@ -95,15 +95,15 @@ class MainGUI(QtWidgets.QMainWindow):
                         item.setEnabled(False)
 
                 elif name == "capture":
-                    for item in ( self.pushButton_Camera, self.pushButton_Video, self.pushButton_Capture):
+                    for item in ( self.pushButton_Camera, self.pushButton_Video, self.pushButton_Image):
                         item.setEnabled(False)
                         item.setStyleSheet("")
-                    self.pushButton_Capture.setStyleSheet("background-color: rgb(0, 204, 255);")
+                    self.pushButton_Image.setStyleSheet("background-color: rgb(0, 204, 255);")
 
         elif typ == "stop":
             for item in [self.pushButton_Stop]:
                 item.setEnabled(False)
-            for item in (self.pushButton_Camera, self.pushButton_Video, self.pushButton_Capture):
+            for item in (self.pushButton_Camera, self.pushButton_Video, self.pushButton_Image):
                 item.setEnabled(True)
                 item.setStyleSheet("")
     
