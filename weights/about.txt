@@ -1,0 +1,2 @@
+det_best.pt: basketball and hoop detection model
+poses_best.pt: person and pose detection
