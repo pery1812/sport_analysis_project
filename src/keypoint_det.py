@@ -15,7 +15,7 @@ class yolo_keypoint(object):
         (12, 14), (14, 16)               # Right leg
     ]
 
-    def __init__(self, model_path, device='cpu'):
+    def __init__(self, model_path, threshold=0.5, device='cpu'):
         """
         Initialize the YOLO Keypoint Detection model.
         
@@ -25,6 +25,7 @@ class yolo_keypoint(object):
         """
         self.device = device
         self.model = self.load_model(model_path)
+        self.thres = threshold
 
     def load_model(self, model_path):
         """
@@ -81,11 +82,12 @@ class yolo_keypoint(object):
             scores = result.boxes.conf.cpu().numpy()  # Confidence scores for boxes
             keypoints = result.keypoints.cpu().numpy()  # Keypoints (x, y, confidence)
             for box, score, kp in zip(boxes, scores, keypoints):
-                parsed_results.append({
-                    "bounding_box": box,  # [x1, y1, x2, y2]
-                    "score": score,
-                    "keypoints": kp  # [[x1, y1, conf], [x2, y2, conf], ...]
-                })
+                if score >= self.thres:
+                    parsed_results.append({
+                        "bounding_box": box,  # [x1, y1, x2, y2]
+                        "score": score,
+                        "keypoints": kp  # [[x1, y1, conf], [x2, y2, conf], ...]
+                    })
         return parsed_results
 
     def draw_keypoints(self, image, keypoints):
@@ -195,7 +197,7 @@ if __name__ == "__main__":
     model_path = "./weights/poses_best.pt"
     yolo_pose = yolo_keypoint(model_path, device='cpu')
 
-    input_image = "./data_test/img1.png"
+    input_image = "./data_test/images/img1.png"
     save_dir = "./outputs"
     os.makedirs(save_dir, exist_ok=True)
     output_image = os.path.join(save_dir, os.path.basename(input_image)[:-4] + ".jpg")
