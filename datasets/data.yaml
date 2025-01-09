@@ -2,12 +2,12 @@ train: ../train/images
 val: ../valid/images
 test: ../test/images
 
-nc: 2
-names: ['Basketball', 'Basketball Hoop']
+nc: 3
+names: ['basketball', 'people', 'rim']
 
 roboflow:
-  workspace: 034-ganesh-kumar-m-v-cs-r2lwe
-  project: basketball-lhqoe
+  workspace: cv-8scak
+  project: cv-cnfd4
   version: 1
   license: CC BY 4.0
-  url: https://universe.roboflow.com/034-ganesh-kumar-m-v-cs-r2lwe/basketball-lhqoe/dataset/1
+  url: https://universe.roboflow.com/cv-8scak/cv-cnfd4/dataset/1

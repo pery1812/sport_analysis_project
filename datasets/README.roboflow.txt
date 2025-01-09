@@ -1,8 +1,8 @@
 
-basketball - v1 2022-11-27 2:23pm
+cv - v1 2023-09-05 12:02am
 ==============================
 
-This dataset was exported via roboflow.com on October 8, 2024 at 2:48 AM GMT
+This dataset was exported via roboflow.com on October 3, 2024 at 9:04 AM GMT
 
 Roboflow is an end-to-end computer vision platform that helps you
 * collaborate with your team on computer vision projects
@@ -17,12 +17,11 @@ visit https://github.com/roboflow/notebooks
 
 To find over 100k other datasets and pre-trained models, visit https://universe.roboflow.com
 
-The dataset includes 300 images.
-Basketball-and-hoop are annotated in YOLOv11 format.
+The dataset includes 3666 images.
+Cv are annotated in YOLOv11 format.
 
 The following pre-processing was applied to each image:
-* Auto-orientation of pixel data (with EXIF-orientation stripping)
-* Resize to 640x640 (Stretch)
+* Resize to 640x640 (Fit (black edges))
 
 No image augmentation techniques were applied.
 
