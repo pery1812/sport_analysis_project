@@ -2,7 +2,7 @@ import os
 import numpy as np
 import cv2
 from ultralytics import YOLO
-import ipdb
+# import ipdb
 
 class yolo_basketball(object):
     CLASS_NAMES = ["basketball", "person", "board"]
